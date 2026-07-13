@@ -1,12 +1,9 @@
 @import url("https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Noto+Sans+KR:wght@400;500;600;700;800&display=swap");
 .hero {
-  display: grid !important;
-  grid-template-columns: 0.78fr 1.22fr !important;
-  align-items: center !important;
-  gap: 5vw !important;
+  display: block !important;
 }
 .hero > .copy {
-  max-width: none !important;
+  max-width: 780px !important;
   margin-bottom: 0 !important;
 }
 .hero > .radar {
