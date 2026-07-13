@@ -16,7 +16,7 @@ function ChuncheonMap(){
  const [selected,setSelected]=useState(null);
  useEffect(()=>{
   const chuncheonBounds=[[127.47,37.72],[128.03,38.12]];
-  const map=new maplibregl.Map({container:mapEl.current,bounds:chuncheonBounds,fitBoundsOptions:{padding:36},pitch:0,bearing:0,attributionControl:false,style:{version:8,sources:{osm:{type:'raster',tiles:['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],tileSize:256,attribution:'© OpenStreetMap contributors'}},layers:[{id:'osm',type:'raster',source:'osm',paint:{'raster-saturation':0,'raster-brightness-min':0,'raster-brightness-max':1,'raster-contrast':0,'raster-opacity':1}}]}});
+  const map=new maplibregl.Map({container:mapEl.current,center:[127.7315,37.8755],zoom:12.15,maxBounds:chuncheonBounds,pitch:0,bearing:0,attributionControl:false,style:{version:8,sources:{osm:{type:'raster',tiles:['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],tileSize:256,attribution:'© OpenStreetMap contributors'}},layers:[{id:'osm',type:'raster',source:'osm',paint:{'raster-saturation':0,'raster-brightness-min':0,'raster-brightness-max':1,'raster-contrast':0,'raster-opacity':1}}]}});
   map.scrollZoom.disable();map.boxZoom.disable();map.doubleClickZoom.disable();map.dragRotate.disable();map.keyboard.disable();map.touchZoomRotate.disable();
   map.addControl(new maplibregl.AttributionControl({compact:true}),'bottom-right');
   const areas=[
@@ -25,7 +25,7 @@ function ChuncheonMap(){
   ];
   const types=[{type:'sun',icon:'☀',title:'맑음',detail:'현재 23° · 강수확률 10%'},{type:'rain',icon:'☂',title:'약한 비 예상',detail:'14시부터 약한 비 · 우산 권장'},{type:'air',icon:'◌',title:'대기 좋음',detail:'미세먼지 18 · 초미세먼지 9'},{type:'safe',icon:'✓',title:'특이사항 없음',detail:'현재 감지된 재난 신호 없음'}];
   const spots=areas.map((area,i)=>({name:area[0],lng:area[1],lat:area[2],...types[i%types.length]}));
-  spots.forEach(spot=>{const el=document.createElement('button');el.className=`signal-marker ${spot.type}`;el.title=`${spot.name} · ${spot.title}`;el.innerHTML=`<span>${spot.icon}</span><em>${spot.name}</em>`;el.addEventListener('click',()=>setSelected(spot));new maplibregl.Marker({element:el}).setLngLat([spot.lng,spot.lat]).addTo(map)});
+  spots.forEach(spot=>{const el=document.createElement('button');el.className=`signal-marker ${spot.type}`;el.title=`${spot.name} · ${spot.title}`;el.innerHTML=`<span>${spot.icon}</span><em>${spot.name}</em>`;el.addEventListener('click',()=>setSelected(spot));new maplibregl.Marker({element:el,anchor:'bottom'}).setLngLat([spot.lng,spot.lat]).addTo(map)});
   return()=>map.remove();
  },[]);
  return <div className="map actual-map"><div ref={mapEl} className="map-canvas"/>{selected&&<div className="area-modal-backdrop" onClick={()=>setSelected(null)}><section className="area-modal" onClick={e=>e.stopPropagation()}><button className="modal-close" onClick={()=>setSelected(null)}>×</button><small>LOCAL SIGNAL</small><h3>{selected.name}</h3><div className={`modal-symbol ${selected.type}`}>{selected.icon}</div><strong>{selected.title}</strong><p>{selected.detail}</p><dl><div><dt>기온</dt><dd>23°</dd></div><div><dt>미세먼지</dt><dd>좋음</dd></div><div><dt>재난</dt><dd>없음</dd></div></dl><em>현재 화면은 UI 확인용 데모 정보입니다.</em></section></div>}<div className="map-legend"><span><i className="rain"/>날씨</span><span><i className="safe"/>안전</span><span><i className="air"/>대기</span></div></div>
