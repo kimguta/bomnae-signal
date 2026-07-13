@@ -14,7 +14,8 @@ const signals=[
 function ChuncheonMap(){
  const mapEl=useRef(null);
  useEffect(()=>{
-  const map=new maplibregl.Map({container:mapEl.current,center:[127.7300,37.8813],zoom:10.7,pitch:42,bearing:-12,attributionControl:false,style:{version:8,sources:{osm:{type:'raster',tiles:['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],tileSize:256,attribution:'© OpenStreetMap contributors'}},layers:[{id:'osm',type:'raster',source:'osm',paint:{'raster-saturation':-0.75,'raster-brightness-min':0.08,'raster-brightness-max':0.48,'raster-contrast':0.25,'raster-opacity':0.82}}]}});
+  const chuncheonBounds=[[127.47,37.72],[128.03,38.12]];
+  const map=new maplibregl.Map({container:mapEl.current,center:[127.7300,37.8813],zoom:10.7,minZoom:9.6,maxZoom:17,maxBounds:chuncheonBounds,pitch:0,bearing:0,attributionControl:false,style:{version:8,sources:{osm:{type:'raster',tiles:['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],tileSize:256,attribution:'© OpenStreetMap contributors'}},layers:[{id:'osm',type:'raster',source:'osm',paint:{'raster-saturation':-0.28,'raster-brightness-min':0.25,'raster-brightness-max':0.78,'raster-contrast':0.08,'raster-opacity':1}}]}});
   map.addControl(new maplibregl.NavigationControl({showCompass:false}),'top-right');
   map.addControl(new maplibregl.AttributionControl({compact:true}),'bottom-right');
   [['춘천 시내',127.7300,37.8813,'24° · 평온'],['퇴계동',127.7258,37.8501,'14시 약한 비'],['석사동',127.7449,37.8585,'미세먼지 좋음'],['신북읍',127.7505,37.9657,'23° · 맑음']].forEach(([name,lng,lat,status],i)=>{const el=document.createElement('button');el.className='map-pin'+(i===0?' active':'');el.innerHTML=`<i></i><b>${name}</b><small>${status}</small>`;new maplibregl.Marker({element:el,anchor:'left'}).setLngLat([lng,lat]).setPopup(new maplibregl.Popup({offset:18,className:'signal-popup'}).setHTML(`<strong>${name}</strong><span>${status}</span>`)).addTo(map)});
