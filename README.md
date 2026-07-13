@@ -10,3 +10,7 @@ npm run dev
 ```
 
 현재 첫 버전은 API 연동 전 UI 프로토타입입니다.
+
+## 배포
+
+GitHub Pages를 통해 자동 배포됩니다: https://kimguta.github.io/bomnae-signal/
