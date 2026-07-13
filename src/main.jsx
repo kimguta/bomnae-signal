@@ -1,4 +1,4 @@
-import React,{useEffect,useRef} from 'react';
+import React,{useEffect,useRef,useState} from 'react';
 import {createRoot} from 'react-dom/client';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
@@ -13,15 +13,23 @@ const signals=[
 ];
 function ChuncheonMap(){
  const mapEl=useRef(null);
+ const [selected,setSelected]=useState(null);
  useEffect(()=>{
   const chuncheonBounds=[[127.47,37.72],[128.03,38.12]];
-  const map=new maplibregl.Map({container:mapEl.current,center:[127.7300,37.8813],zoom:10.7,minZoom:9.6,maxZoom:17,maxBounds:chuncheonBounds,pitch:0,bearing:0,attributionControl:false,style:{version:8,sources:{osm:{type:'raster',tiles:['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],tileSize:256,attribution:'© OpenStreetMap contributors'}},layers:[{id:'osm',type:'raster',source:'osm',paint:{'raster-saturation':-0.28,'raster-brightness-min':0.25,'raster-brightness-max':0.78,'raster-contrast':0.08,'raster-opacity':1}}]}});
+  const map=new maplibregl.Map({container:mapEl.current,center:[127.7300,37.8813],zoom:10.7,minZoom:9.6,maxZoom:17,maxBounds:chuncheonBounds,pitch:0,bearing:0,attributionControl:false,style:{version:8,sources:{osm:{type:'raster',tiles:['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],tileSize:256,attribution:'© OpenStreetMap contributors'}},layers:[{id:'osm',type:'raster',source:'osm',paint:{'raster-saturation':0,'raster-brightness-min':0.72,'raster-brightness-max':1,'raster-contrast':0,'raster-opacity':1}}]}});
   map.addControl(new maplibregl.NavigationControl({showCompass:false}),'top-right');
   map.addControl(new maplibregl.AttributionControl({compact:true}),'bottom-right');
-  [['춘천 시내',127.7300,37.8813,'24° · 평온'],['퇴계동',127.7258,37.8501,'14시 약한 비'],['석사동',127.7449,37.8585,'미세먼지 좋음'],['신북읍',127.7505,37.9657,'23° · 맑음']].forEach(([name,lng,lat,status],i)=>{const el=document.createElement('button');el.className='map-pin'+(i===0?' active':'');el.innerHTML=`<i></i><b>${name}</b><small>${status}</small>`;new maplibregl.Marker({element:el,anchor:'left'}).setLngLat([lng,lat]).setPopup(new maplibregl.Popup({offset:18,className:'signal-popup'}).setHTML(`<strong>${name}</strong><span>${status}</span>`)).addTo(map)});
+  const spots=[
+   {name:'춘천 시내',lng:127.7300,lat:37.8813,type:'air',icon:'◌',title:'대기 좋음',detail:'미세먼지 18 · 초미세먼지 9'},
+   {name:'퇴계동',lng:127.7258,lat:37.8501,type:'rain',icon:'☂',title:'약한 비 예상',detail:'14시부터 약한 비 · 우산 권장'},
+   {name:'석사동',lng:127.7449,lat:37.8585,type:'safe',icon:'✓',title:'특이사항 없음',detail:'현재 감지된 재난 신호 없음'},
+   {name:'신북읍',lng:127.7505,lat:37.9657,type:'sun',icon:'☀',title:'맑음',detail:'23° · 강수확률 10%'}
+  ];
+  map.on('load',()=>{map.addSource('selection',{type:'geojson',data:{type:'FeatureCollection',features:[]}});map.addLayer({id:'selection-area',type:'circle',source:'selection',paint:{'circle-radius':42,'circle-color':'rgba(0,0,0,0)','circle-stroke-width':2,'circle-stroke-color':'#087f72'}})});
+  spots.forEach(spot=>{const el=document.createElement('button');el.className=`signal-marker ${spot.type}`;el.title=`${spot.name} · ${spot.title}`;el.innerHTML=`<span>${spot.icon}</span><em>${spot.name}</em>`;el.addEventListener('click',()=>{setSelected(spot);const source=map.getSource('selection');if(source)source.setData({type:'Feature',geometry:{type:'Point',coordinates:[spot.lng,spot.lat]}});map.easeTo({center:[spot.lng,spot.lat],zoom:12,duration:650})});new maplibregl.Marker({element:el}).setLngLat([spot.lng,spot.lat]).addTo(map)});
   return()=>map.remove();
  },[]);
- return <div className="map actual-map"><div ref={mapEl} className="map-canvas"/><div className="map-tint"/><div className="radar-pulse"/><div className="weather-cloud"><CloudRain/><span>남부권 14시 비</span></div><div className="map-status"><ShieldCheck/><span><b>안전</b> 감지된 재난 신호가 없습니다</span></div></div>
+ return <div className="map actual-map"><div ref={mapEl} className="map-canvas"/>{selected&&<aside className="region-panel"><button onClick={()=>setSelected(null)}>×</button><small>SELECTED AREA</small><h3>{selected.name}</h3><strong>{selected.title}</strong><p>{selected.detail}</p></aside>}<div className="map-legend"><span><i className="rain"/>날씨</span><span><i className="safe"/>안전</span><span><i className="air"/>대기</span></div></div>
 }
 function App(){
  const now=new Date();
