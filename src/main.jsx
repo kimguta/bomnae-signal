@@ -1,7 +1,5 @@
-import React,{useEffect,useRef,useState} from 'react';
+import React,{useEffect,useState} from 'react';
 import {createRoot} from 'react-dom/client';
-import maplibregl from 'maplibre-gl';
-import 'maplibre-gl/dist/maplibre-gl.css';
 import {CloudRain, Wind, ShieldCheck, Navigation, Droplets, Radio, MapPin, Bell, ArrowUpRight} from 'lucide-react';
 import './style.css';
 
@@ -12,23 +10,26 @@ const signals=[
  {time:'하루 종일',icon:ShieldCheck,title:'재난 신호 없음',desc:'춘천 전 지역이 평온해요',tone:'mint'}
 ];
 function ChuncheonMap(){
- const mapEl=useRef(null);
+ const [districts,setDistricts]=useState([]);
  const [selected,setSelected]=useState(null);
- useEffect(()=>{
-  const chuncheonBounds=[[127.47,37.72],[128.03,38.12]];
-  const map=new maplibregl.Map({container:mapEl.current,center:[127.7315,37.8755],zoom:12.35,maxBounds:chuncheonBounds,pitch:48,bearing:-14,attributionControl:false,style:{version:8,sources:{osm:{type:'raster',tiles:['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],tileSize:256,attribution:'© OpenStreetMap contributors'}},layers:[{id:'osm',type:'raster',source:'osm',paint:{'raster-saturation':-0.08,'raster-brightness-min':0.04,'raster-brightness-max':0.98,'raster-contrast':0.06,'raster-opacity':1}}]}});
-  map.scrollZoom.disable();map.boxZoom.disable();map.doubleClickZoom.disable();map.dragRotate.disable();map.keyboard.disable();map.touchZoomRotate.disable();
-  map.addControl(new maplibregl.AttributionControl({compact:true}),'bottom-right');
-  const areas=[
-   ['신북읍',127.7462143,37.9259105],['동면',127.7812639,37.9101711],['동산면',127.7963105,37.7523223],['신동면',127.7160588,37.8176889],['동내면',127.7611817,37.8479258],['남면',127.5998151,37.7321453],['남산면',127.6461902,37.7918516],['서면',127.6927853,37.8987057],['사북면',127.6408066,38.0298652],['북산면',127.8859881,37.9873263],
-   ['소양동',127.7246853,37.8822710],['교동',127.7362627,37.8806081],['조운동',127.7303469,37.8794236],['약사명동',127.7247382,37.8765327],['근화동',127.7121835,37.8807519],['후평1동',127.7454678,37.8859714],['후평2동',127.7504664,37.8774685],['후평3동',127.7538753,37.8765131],['효자1동',127.7275315,37.8721901],['효자2동',127.7363810,37.8723963],['효자3동',127.7413821,37.8764631],['석사동',127.7423900,37.8585975],['퇴계동',127.7262161,37.8644841],['강남동',127.7188532,37.8678818],['신사우동',127.7278957,37.9059516]
-  ];
-  const types=[{type:'sun',icon:'☀',title:'맑음',detail:'현재 23° · 강수확률 10%'},{type:'rain',icon:'☂',title:'약한 비 예상',detail:'14시부터 약한 비 · 우산 권장'},{type:'air',icon:'◌',title:'대기 좋음',detail:'미세먼지 18 · 초미세먼지 9'},{type:'safe',icon:'✓',title:'특이사항 없음',detail:'현재 감지된 재난 신호 없음'}];
-  const spots=areas.map((area,i)=>({name:area[0],lng:area[1],lat:area[2],...types[i%types.length]}));
-  spots.forEach(spot=>{const el=document.createElement('button');el.className=`signal-marker ${spot.type}`;el.title=`${spot.name} · ${spot.title}`;el.innerHTML=`<span>${spot.icon}</span><em>${spot.name}</em>`;el.addEventListener('click',()=>setSelected(spot));new maplibregl.Marker({element:el,anchor:'center'}).setLngLat([spot.lng,spot.lat]).addTo(map)});
-  return()=>map.remove();
- },[]);
- return <div className="map actual-map"><div ref={mapEl} className="map-canvas"/>{selected&&<div className="area-modal-backdrop" onClick={()=>setSelected(null)}><section className="area-modal" onClick={e=>e.stopPropagation()}><button className="modal-close" onClick={()=>setSelected(null)}>×</button><small>LOCAL SIGNAL</small><h3>{selected.name}</h3><div className={`modal-symbol ${selected.type}`}>{selected.icon}</div><strong>{selected.title}</strong><p>{selected.detail}</p><dl><div><dt>기온</dt><dd>23°</dd></div><div><dt>미세먼지</dt><dd>좋음</dd></div><div><dt>재난</dt><dd>없음</dd></div></dl><em>현재 화면은 UI 확인용 데모 정보입니다.</em></section></div>}<div className="map-legend"><span><i className="rain"/>날씨</span><span><i className="safe"/>안전</span><span><i className="air"/>대기</span></div></div>
+ useEffect(()=>{fetch(`${import.meta.env.BASE_URL}chuncheon-districts.geojson`).then(r=>r.json()).then(d=>setDistricts(d.features))},[]);
+ const types=[{type:'sun',icon:'☀',title:'맑음',detail:'현재 23° · 강수확률 10%'},{type:'rain',icon:'☂',title:'약한 비 예상',detail:'14시부터 약한 비 · 우산 권장'},{type:'air',icon:'◌',title:'대기 좋음',detail:'미세먼지 18 · 초미세먼지 9'},{type:'safe',icon:'✓',title:'특이사항 없음',detail:'현재 감지된 재난 신호 없음'}];
+ const enrich=(feature,index)=>({...feature,signal:types[index%types.length]});
+ const townNames=new Set(['교동','조운동','약사명동','근화동','소양동','후평1동','후평2동','후평3동','효자1동','효자2동','효자3동','석사동','퇴계동','강남동','신사우동']);
+ const rural=districts.filter(x=>!townNames.has(x.properties.name)).map(enrich);
+ const town=districts.filter(x=>townNames.has(x.properties.name)).map(enrich);
+ const openArea=feature=>setSelected({name:feature.properties.name,...feature.signal});
+ return <div className="vector-map"><div className="map-panel rural-panel"><div className="map-panel-title"><span>CHUNCHEON AREA</span><b>읍 · 면</b></div><DistrictSvg features={rural} onSelect={openArea}/></div><div className="map-panel town-panel"><div className="map-panel-title"><span>DOWNTOWN DETAIL</span><b>시내 15개 동</b></div><DistrictSvg features={town} onSelect={openArea}/></div>{selected&&<div className="area-modal-backdrop" onClick={()=>setSelected(null)}><section className="area-modal" onClick={e=>e.stopPropagation()}><button className="modal-close" onClick={()=>setSelected(null)}>×</button><small>LOCAL SIGNAL</small><h3>{selected.name}</h3><div className={`modal-symbol ${selected.type}`}>{selected.icon}</div><strong>{selected.title}</strong><p>{selected.detail}</p><dl><div><dt>기온</dt><dd>23°</dd></div><div><dt>미세먼지</dt><dd>좋음</dd></div><div><dt>재난</dt><dd>없음</dd></div></dl><em>현재 화면은 UI 확인용 데모 정보입니다.</em></section></div>}</div>
+}
+function DistrictSvg({features,onSelect}){
+ if(!features.length)return <div className="map-loading">경계 데이터를 불러오는 중</div>;
+ const collectPoints=value=>typeof value[0]==='number'?[value]:value.flatMap(collectPoints);
+ const points=features.flatMap(f=>collectPoints(f.geometry.coordinates));
+ const minX=Math.min(...points.map(p=>p[0])),maxX=Math.max(...points.map(p=>p[0])),minY=Math.min(...points.map(p=>p[1])),maxY=Math.max(...points.map(p=>p[1]));
+ const W=900,H=700,P=38,project=([x,y])=>[P+(x-minX)/(maxX-minX)*(W-P*2),P+(maxY-y)/(maxY-minY)*(H-P*2)];
+ const ringPath=ring=>ring.map((p,i)=>`${i?'L':'M'}${project(p).join(',')}`).join(' ')+'Z';
+ const geometryPath=f=>(f.geometry.type==='Polygon'?[f.geometry.coordinates]:f.geometry.coordinates).flatMap(poly=>poly.map(ringPath)).join(' ');
+ return <svg className="district-svg" viewBox={`0 0 ${W} ${H}`} role="img">{features.map(f=>{const [x,y]=project(f.properties.center);return <g key={f.properties.code} className={`district ${f.signal.type}`} onClick={()=>onSelect(f)}><path d={geometryPath(f)}/><circle cx={x} cy={y} r="12"/><text x={x} y={y-18}>{f.properties.name}</text><text className="weather-glyph" x={x} y={y+5}>{f.signal.icon}</text></g>})}</svg>
 }
 function App(){
  const now=new Date();
