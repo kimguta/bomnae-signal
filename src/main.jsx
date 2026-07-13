@@ -1,4 +1,4 @@
-import React,{useEffect,useState} from 'react';
+import React,{useEffect,useRef,useState} from 'react';
 import {createRoot} from 'react-dom/client';
 import {CloudRain, Wind, ShieldCheck, Navigation, Droplets, Radio, MapPin, Bell, ArrowUpRight} from 'lucide-react';
 import './style.css';
@@ -15,13 +15,15 @@ function ChuncheonMap(){
  useEffect(()=>{fetch(`${import.meta.env.BASE_URL}chuncheon-districts.geojson`).then(r=>r.json()).then(d=>setDistricts(d.features))},[]);
  const types=[{type:'sun',icon:'☀',title:'맑음',detail:'현재 23° · 강수확률 10%'},{type:'rain',icon:'☂',title:'약한 비 예상',detail:'14시부터 약한 비 · 우산 권장'},{type:'air',icon:'◌',title:'대기 좋음',detail:'미세먼지 18 · 초미세먼지 9'},{type:'safe',icon:'✓',title:'특이사항 없음',detail:'현재 감지된 재난 신호 없음'}];
  const enrich=(feature,index)=>({...feature,signal:types[index%types.length]});
- const townNames=new Set(['교동','조운동','약사명동','근화동','소양동','후평1동','후평2동','후평3동','효자1동','효자2동','효자3동','석사동','퇴계동','강남동','신사우동']);
- const rural=districts.filter(x=>!townNames.has(x.properties.name)).map(enrich);
- const town=districts.filter(x=>townNames.has(x.properties.name)).map(enrich);
+ const areas=districts.map(enrich);
  const openArea=feature=>setSelected({name:feature.properties.name,...feature.signal});
- return <div className="vector-map"><div className="map-panel rural-panel"><div className="map-panel-title"><span>CHUNCHEON AREA</span><b>읍 · 면</b></div><DistrictSvg features={rural} onSelect={openArea}/></div><div className="map-panel town-panel"><div className="map-panel-title"><span>DOWNTOWN DETAIL</span><b>시내 15개 동</b></div><DistrictSvg features={town} onSelect={openArea}/></div>{selected&&<div className="area-modal-backdrop" onClick={()=>setSelected(null)}><section className="area-modal" onClick={e=>e.stopPropagation()}><button className="modal-close" onClick={()=>setSelected(null)}>×</button><small>LOCAL SIGNAL</small><h3>{selected.name}</h3><div className={`modal-symbol ${selected.type}`}>{selected.icon}</div><strong>{selected.title}</strong><p>{selected.detail}</p><dl><div><dt>기온</dt><dd>23°</dd></div><div><dt>미세먼지</dt><dd>좋음</dd></div><div><dt>재난</dt><dd>없음</dd></div></dl><em>현재 화면은 UI 확인용 데모 정보입니다.</em></section></div>}</div>
+ return <div className="vector-map"><div className="map-panel"><div className="map-panel-title"><span>CHUNCHEON SIGNAL MAP</span><b>춘천시 읍 · 면 · 동</b></div><div className="map-help">휠로 확대 · 드래그로 이동</div><DistrictSvg features={areas} onSelect={openArea}/></div>{selected&&<div className="area-modal-backdrop" onClick={()=>setSelected(null)}><section className="area-modal" onClick={e=>e.stopPropagation()}><button className="modal-close" onClick={()=>setSelected(null)}>×</button><small>LOCAL SIGNAL</small><h3>{selected.name}</h3><div className={`modal-symbol ${selected.type}`}>{selected.icon}</div><strong>{selected.title}</strong><p>{selected.detail}</p><dl><div><dt>기온</dt><dd>23°</dd></div><div><dt>미세먼지</dt><dd>좋음</dd></div><div><dt>재난</dt><dd>없음</dd></div></dl><em>현재 화면은 UI 확인용 데모 정보입니다.</em></section></div>}</div>
 }
 function DistrictSvg({features,onSelect}){
+ const svgRef=useRef(null);
+ const [view,setView]=useState({x:0,y:0,w:900,h:700});
+ const drag=useRef(null);
+ const suppressClick=useRef(false);
  if(!features.length)return <div className="map-loading">경계 데이터를 불러오는 중</div>;
  const collectPoints=value=>typeof value[0]==='number'?[value]:value.flatMap(collectPoints);
  const points=features.flatMap(f=>collectPoints(f.geometry.coordinates));
@@ -29,7 +31,11 @@ function DistrictSvg({features,onSelect}){
  const W=900,H=700,P=38,project=([x,y])=>[P+(x-minX)/(maxX-minX)*(W-P*2),P+(maxY-y)/(maxY-minY)*(H-P*2)];
  const ringPath=ring=>ring.map((p,i)=>`${i?'L':'M'}${project(p).join(',')}`).join(' ')+'Z';
  const geometryPath=f=>(f.geometry.type==='Polygon'?[f.geometry.coordinates]:f.geometry.coordinates).flatMap(poly=>poly.map(ringPath)).join(' ');
- return <svg className="district-svg" viewBox={`0 0 ${W} ${H}`} role="img">{features.map(f=>{const [x,y]=project(f.properties.center);return <g key={f.properties.code} className={`district ${f.signal.type}`} onClick={()=>onSelect(f)}><path d={geometryPath(f)}/><circle cx={x} cy={y} r="12"/><text x={x} y={y-18}>{f.properties.name}</text><text className="weather-glyph" x={x} y={y+5}>{f.signal.icon}</text></g>})}</svg>
+ const wheel=e=>{e.preventDefault();const rect=svgRef.current.getBoundingClientRect(),px=view.x+(e.clientX-rect.left)/rect.width*view.w,py=view.y+(e.clientY-rect.top)/rect.height*view.h,f=e.deltaY>0?1.22:.82,nw=Math.max(150,Math.min(900,view.w*f)),nh=nw*H/W,r=(px-view.x)/view.w,s=(py-view.y)/view.h;setView({x:px-r*nw,y:py-s*nh,w:nw,h:nh})};
+ const down=e=>{svgRef.current.setPointerCapture(e.pointerId);suppressClick.current=false;drag.current={x:e.clientX,y:e.clientY,view}};
+ const move=e=>{if(!drag.current)return;const rect=svgRef.current.getBoundingClientRect(),dx=(e.clientX-drag.current.x)/rect.width*drag.current.view.w,dy=(e.clientY-drag.current.y)/rect.height*drag.current.view.h;if(Math.abs(e.clientX-drag.current.x)+Math.abs(e.clientY-drag.current.y)>4)suppressClick.current=true;setView({...drag.current.view,x:drag.current.view.x-dx,y:drag.current.view.y-dy})};
+ const up=()=>{drag.current=null};
+ return <svg ref={svgRef} className="district-svg" viewBox={`${view.x} ${view.y} ${view.w} ${view.h}`} onWheel={wheel} onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up} role="img">{features.map(f=>{const [x,y]=project(f.properties.center);return <g key={f.properties.code} className={`district ${f.signal.type}`} onClick={()=>{if(!suppressClick.current)onSelect(f);suppressClick.current=false}}><path d={geometryPath(f)}/><circle cx={x} cy={y} r="12"/><text x={x} y={y-18}>{f.properties.name}</text><text className="weather-glyph" x={x} y={y+5}>{f.signal.icon}</text></g>})}</svg>
 }
 function App(){
  const now=new Date();
