@@ -16,7 +16,8 @@ function ChuncheonMap(){
  const [selected,setSelected]=useState(null);
  useEffect(()=>{
   const chuncheonBounds=[[127.47,37.72],[128.03,38.12]];
-  const map=new maplibregl.Map({container:mapEl.current,bounds:chuncheonBounds,fitBoundsOptions:{padding:24},pitch:0,bearing:0,attributionControl:false,interactive:false,style:{version:8,sources:{osm:{type:'raster',tiles:['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],tileSize:256,attribution:'© OpenStreetMap contributors'}},layers:[{id:'osm',type:'raster',source:'osm',paint:{'raster-saturation':0,'raster-brightness-min':0,'raster-brightness-max':1,'raster-contrast':0,'raster-opacity':1}}]}});
+  const map=new maplibregl.Map({container:mapEl.current,bounds:chuncheonBounds,fitBoundsOptions:{padding:36},pitch:0,bearing:0,attributionControl:false,style:{version:8,sources:{osm:{type:'raster',tiles:['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],tileSize:256,attribution:'© OpenStreetMap contributors'}},layers:[{id:'osm',type:'raster',source:'osm',paint:{'raster-saturation':0,'raster-brightness-min':0,'raster-brightness-max':1,'raster-contrast':0,'raster-opacity':1}}]}});
+  map.scrollZoom.disable();map.boxZoom.disable();map.doubleClickZoom.disable();map.dragRotate.disable();map.keyboard.disable();map.touchZoomRotate.disable();
   map.addControl(new maplibregl.AttributionControl({compact:true}),'bottom-right');
   const areas=[
    ['신북읍',127.7462143,37.9259105],['동면',127.7812639,37.9101711],['동산면',127.7963105,37.7523223],['신동면',127.7160588,37.8176889],['동내면',127.7611817,37.8479258],['남면',127.5998151,37.7321453],['남산면',127.6461902,37.7918516],['서면',127.6927853,37.8987057],['사북면',127.6408066,38.0298652],['북산면',127.8859881,37.9873263],
