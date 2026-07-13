@@ -19,17 +19,17 @@ function ChuncheonMap(){
   const map=new maplibregl.Map({container:mapEl.current,center:[127.7300,37.8813],zoom:10.7,minZoom:9.6,maxZoom:17,maxBounds:chuncheonBounds,pitch:0,bearing:0,attributionControl:false,style:{version:8,sources:{osm:{type:'raster',tiles:['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],tileSize:256,attribution:'© OpenStreetMap contributors'}},layers:[{id:'osm',type:'raster',source:'osm',paint:{'raster-saturation':0,'raster-brightness-min':0.72,'raster-brightness-max':1,'raster-contrast':0,'raster-opacity':1}}]}});
   map.addControl(new maplibregl.NavigationControl({showCompass:false}),'top-right');
   map.addControl(new maplibregl.AttributionControl({compact:true}),'bottom-right');
-  const spots=[
-   {name:'춘천 시내',lng:127.7300,lat:37.8813,type:'air',icon:'◌',title:'대기 좋음',detail:'미세먼지 18 · 초미세먼지 9'},
-   {name:'퇴계동',lng:127.7258,lat:37.8501,type:'rain',icon:'☂',title:'약한 비 예상',detail:'14시부터 약한 비 · 우산 권장'},
-   {name:'석사동',lng:127.7449,lat:37.8585,type:'safe',icon:'✓',title:'특이사항 없음',detail:'현재 감지된 재난 신호 없음'},
-   {name:'신북읍',lng:127.7505,lat:37.9657,type:'sun',icon:'☀',title:'맑음',detail:'23° · 강수확률 10%'}
+  const areas=[
+   ['신북읍',127.7505,37.9657],['동면',127.804,37.910],['동산면',127.785,37.754],['신동면',127.718,37.794],['동내면',127.772,37.842],['남면',127.600,37.730],['남산면',127.637,37.789],['서면',127.641,37.900],['사북면',127.620,38.006],['북산면',127.886,38.015],
+   ['소양동',127.728,37.887],['교동',127.737,37.886],['조운동',127.733,37.879],['약사명동',127.721,37.875],['근화동',127.711,37.882],['후평1동',127.749,37.889],['후평2동',127.760,37.884],['후평3동',127.754,37.874],['효자1동',127.729,37.867],['효자2동',127.741,37.870],['효자3동',127.735,37.860],['석사동',127.7449,37.8585],['퇴계동',127.7258,37.8501],['강남동',127.716,37.861],['신사우동',127.720,37.915]
   ];
+  const types=[{type:'sun',icon:'☀',title:'맑음',detail:'현재 23° · 강수확률 10%'},{type:'rain',icon:'☂',title:'약한 비 예상',detail:'14시부터 약한 비 · 우산 권장'},{type:'air',icon:'◌',title:'대기 좋음',detail:'미세먼지 18 · 초미세먼지 9'},{type:'safe',icon:'✓',title:'특이사항 없음',detail:'현재 감지된 재난 신호 없음'}];
+  const spots=areas.map((area,i)=>({name:area[0],lng:area[1],lat:area[2],...types[i%types.length]}));
   map.on('load',()=>{map.addSource('selection',{type:'geojson',data:{type:'FeatureCollection',features:[]}});map.addLayer({id:'selection-area',type:'circle',source:'selection',paint:{'circle-radius':42,'circle-color':'rgba(0,0,0,0)','circle-stroke-width':2,'circle-stroke-color':'#087f72'}})});
   spots.forEach(spot=>{const el=document.createElement('button');el.className=`signal-marker ${spot.type}`;el.title=`${spot.name} · ${spot.title}`;el.innerHTML=`<span>${spot.icon}</span><em>${spot.name}</em>`;el.addEventListener('click',()=>{setSelected(spot);const source=map.getSource('selection');if(source)source.setData({type:'Feature',geometry:{type:'Point',coordinates:[spot.lng,spot.lat]}});map.easeTo({center:[spot.lng,spot.lat],zoom:12,duration:650})});new maplibregl.Marker({element:el}).setLngLat([spot.lng,spot.lat]).addTo(map)});
   return()=>map.remove();
  },[]);
- return <div className="map actual-map"><div ref={mapEl} className="map-canvas"/>{selected&&<aside className="region-panel"><button onClick={()=>setSelected(null)}>×</button><small>SELECTED AREA</small><h3>{selected.name}</h3><strong>{selected.title}</strong><p>{selected.detail}</p></aside>}<div className="map-legend"><span><i className="rain"/>날씨</span><span><i className="safe"/>안전</span><span><i className="air"/>대기</span></div></div>
+ return <div className="map actual-map"><div ref={mapEl} className="map-canvas"/>{selected&&<div className="area-modal-backdrop" onClick={()=>setSelected(null)}><section className="area-modal" onClick={e=>e.stopPropagation()}><button className="modal-close" onClick={()=>setSelected(null)}>×</button><small>LOCAL SIGNAL</small><h3>{selected.name}</h3><div className={`modal-symbol ${selected.type}`}>{selected.icon}</div><strong>{selected.title}</strong><p>{selected.detail}</p><dl><div><dt>기온</dt><dd>23°</dd></div><div><dt>미세먼지</dt><dd>좋음</dd></div><div><dt>재난</dt><dd>없음</dd></div></dl><em>현재 화면은 UI 확인용 데모 정보입니다.</em></section></div>}<div className="map-legend"><span><i className="rain"/>날씨</span><span><i className="safe"/>안전</span><span><i className="air"/>대기</span></div></div>
 }
 function App(){
  const now=new Date();
